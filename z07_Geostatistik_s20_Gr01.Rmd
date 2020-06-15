@@ -28,7 +28,7 @@ Ca <- SPDFljz@data$Ca_exch
 vario_omni_Ca <- variogram(Ca ~ EAST + NORTH,
                            data = SPDFljz,
                            cutoff = 2202,
-                           width = 150)
+                           width = 100)
 
 plot(vario_omni_Ca,
      main = "Omnidirektionales empirisches Variogramm",
@@ -37,7 +37,8 @@ plot(vario_omni_Ca,
 
 #Modell zum Variogramm
 vario_omni_Ca_fit <- fit.variogram(vario_omni_Ca, 
-                                   vgm(model = "Exp"))
+                                   vgm(model = "Exp"),
+                                   fit.method = 7)
 
 plot(vario_omni_Ca,
      model = vario_omni_Ca_fit,
@@ -65,39 +66,36 @@ summary(LOOCV)
 ```
 
 
-observed:
+observed: Tatsächlich gemessenen Werte
 
-residual:Residuen als Differenz des errechneten Werts zum tatsächlichen Wert, der zur Überprüfung ausgelassen wurde.
+residual: Residuen als Differenz des errechneten Werts zum tatsächlichen Wert, der zur Überprüfung ausgelassen wurde.
 
-zscore: Kriging Standard-Fehler, bei dem die Kriging-Varianz eine Rolle spielt. mean und variance sollten dicht an 0 und 1 liegen
+zscore: Kriging Standard-Fehler, bei dem die Kriging-Varianz eine Rolle spielt. Mean und Variance sollten dicht an 0 und 1 liegen.
 
-fold: zeigt zu welchem "fold" jeder Datensatz gehört
+fold: Zeigt zu welcher Teilmenge der jeweilige Datensatz gehört.
+
 [@Bivand.2008]
-
 
 c) Wie sähe das Vorhersageergebnis aus, wenn der Probenstandort während der Kreuzvalidierung nicht ausgeschlossen werden würde? Was ergäbe sich konsequenterweise bei der Fehlerberechnung? (1 Punkt)
 
-Dasselbe wie beim Ordinary Kriging???
-```{r}
+Die Leave-One-Out-Cross-Validation beruht auf dem theoretischem Ansatz, den vorhandenen Datensatz nur gegen eine einzige Beobachtung zu testen und dieses Verfahren schließlich auf jeden Beobachtungsparameter anzuwenden. Ohne das Ausschließen dieses Wertes, würde das kriging den beobachteten Wert selbst vorhersagen. Das Ergebnis ist dann dasselbe wie beim Ordinary Kriging (s. R Hilfe).
 
-```
 ## Aufgabe 15 Root-Mean-Squared-Error
 
 Der RMSE gibt Auskunft darüber, wie nah das Modell an die bekannten, tatsächlich gemessenen Daten herankommt. Er ist ein Maß für die 'accuracy' des gewählten Prädiktionsverfahrens.
 
 a) Berechnen Sie den RMSE für die austauschbaren Ca-Ionen. (1 Punkt)
 ```{r Aufgabe 15a}
-#Root-Mean-Squere-Error Ca
+#Root-Mean-Square-Error Ca
 rmse <- function(x,y) {
-  sqrt(mean((x - y)^2))
+  sqrt(mean((x)^2))
 }
 
-rmse(x = Ca,
-     y = LOOCV@data$residual)
+rmse(x = LOOCV@data$residual)
 ```
 b) Was bedeuten die einzelnen Silben des Wortes RMSE und warum wird der Vorhersage-Fehler gerade so beschrieben? (2 Punkte)
 
-RMSE steht für Root-Mean-Squere-Error. Zur Fehlerberechnung des Modells wird die Wurzel aus der quadrierten mittleren Abweichung des berechneten Werts von dem tatsächlichen Wert berechnet.
+RMSE steht für Root-Mean-Square-Error. Zur Fehlerberechnung des Modells wird die Wurzel aus den quadrierten mittleren Residuen des berechneten Werts von den tatsächlichen Werten berechnet. Die Differenzen von Schätzwerten und tatsächlichen Messwerten werden zunächst quadriert, da der Betrag der Differenz (= Residuen) nur positiv sein kann. Um die Quadrierung wieder zu negieren, wird nach der Ermittlung des arithmetischen Mittels die Wurzel gezogen. Die Einheit des RMSEs ist dieselbe wie die der Eingangsgröße.
 
 ## Aufgabe 16 Grafische Validierung
 
@@ -108,17 +106,44 @@ a) Erstellen Sie für ihre Modell-Residuen einen ansehnlichen Bubble-Plot und ge
 #Bubbleplot der LOOCV
 library(lattice)
 bubble(LOOCV, "residual",
-       main = "Austauschbare Ca-Ionen: Residuen der LOOCV")
+       key.space="right",
+       key.entries=c(min(LOOCV$residual),
+                     -10,0,10,25,40,
+                     max(LOOCV$residual)),
+       scales=list(tick.number=4, alternating=1),
+       maxsize=2,
+       xlab="East",
+       ylab="North",
+       main="Räumliche Verteilung der Modell-Residuen\ndes LOOCV-Verfahrens der austauschbaren Ca-Ionen")
 ```
+Es ist kein klarer räumlicher Trend für das erstellte Modell zu erkennen. Im westlichen Drittel des Beprobungsgebietes ist die Differenz zwischen den vorhergesagten und den tatsächlich gemessen Werten etwas höher als im östlichen Teil. Insgesamt ist nicht zu erkennen, ob eine Über- oder Unterschätzung der austauschbaren Ca-Ionen vorliegt. An den Beprobungsstandorten, wo sehr hohe Messwerte gemessen wurden, sind auch die Residuen höher (Ausreißer). Dort, wo viel beprobt wurde, entsteht durch die Häufung der bubbles der Eindruck, dass das Modell stark von den gemessenen Werten abweicht. Das kann aber so nicht bestätigt werden.
+
 b) Plotten Sie die tatsächlichen Ca-Ionen-Konzentrationen gegen die vorhergesagten Werte. Ergänzen Sie eine Ausgleichsgerade mit der Steigung eins und einem Verlauf durch den Ursprung. (1 Punkt)
 ```{r Aufgabe 16b}
-loocv <- LOOCV@data$var1.pred
-line <- function(x) {
-        y = x - 15
-}
-plot(Ca, loocv)
-abline(lm(loocv ~ Ca))
+#loocv <- LOOCV@data$var1.pred
+#line <- function(x) {
+#        y = x - 15
+#}
+#plot(Ca, loocv)
+#abline(lm(loocv ~ Ca))
+
+
+plot(LOOCV$observed, 
+     LOOCV$var1.pred, 
+     xlim= c(0,100), 
+     ylim=c(0,50), 
+     pch="*", 
+     cex=1, 
+     col="black", 
+     xlab= "Tatsächliche Ca-Ionen Konzentration [μmol/g]",
+     ylab= "Modellierte Ca-Ionen Konzentration [μmol/g]", 
+     main ="Tatsächliche vs. modellierte Ca-Ionen-Konzentrationen", 
+grid(col= "grey", lty=5)); 
+abline(0,1,col="red")
+abline(lm(LOOCV$var1.pred ~ LOOCV$observed),
+       col = "blue")
 ```
 c) Bewerten Sie kurz das durchgeführte Interpolationsverfahren. Beziehen Sie sich auf den RMSE und ihre Diagnose-Plots. (2 Punkte)
+
 
 ## Literatur
