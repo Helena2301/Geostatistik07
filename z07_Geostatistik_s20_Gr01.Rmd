@@ -120,14 +120,6 @@ Es ist kein klarer räumlicher Trend für das erstellte Modell zu erkennen. Im w
 
 b) Plotten Sie die tatsächlichen Ca-Ionen-Konzentrationen gegen die vorhergesagten Werte. Ergänzen Sie eine Ausgleichsgerade mit der Steigung eins und einem Verlauf durch den Ursprung. (1 Punkt)
 ```{r Aufgabe 16b}
-#loocv <- LOOCV@data$var1.pred
-#line <- function(x) {
-#        y = x - 15
-#}
-#plot(Ca, loocv)
-#abline(lm(loocv ~ Ca))
-
-
 plot(LOOCV$observed, 
      LOOCV$var1.pred, 
      xlim= c(0,100), 
@@ -135,15 +127,29 @@ plot(LOOCV$observed,
      pch="*", 
      cex=1, 
      col="black", 
-     xlab= "Tatsächliche Ca-Ionen Konzentration [μmol/g]",
-     ylab= "Modellierte Ca-Ionen Konzentration [μmol/g]", 
+     xlab= "Tatsächliche Ca-Ionen Konzentration [µmol/g]",
+     ylab= "Modellierte Ca-Ionen Konzentration [µmol/g]", 
      main ="Tatsächliche vs. modellierte Ca-Ionen-Konzentrationen", 
 grid(col= "grey", lty=5)); 
 abline(0,1,col="red")
 abline(lm(LOOCV$var1.pred ~ LOOCV$observed),
        col = "blue")
+
+#Gleichung Regressionsgerade
+x <- LOOCV$observed
+y <- LOOCV@data$var1.pred
+
+reg <- lm(y ~ x, data = LOOCV)
+
+s <- summary.lm(reg)
+b <- s$coefficients[1,1]
+a <- s$coefficients[2,1]
+cat(a,"x +", b, sep=" ", append=TRUE)
 ```
 c) Bewerten Sie kurz das durchgeführte Interpolationsverfahren. Beziehen Sie sich auf den RMSE und ihre Diagnose-Plots. (2 Punkte)
 
+Da bei dem RMSE von 9,4$\mu$mol/g im Vergleich zu einer Spannweite der Werte von knapp über 90$\mu$mol/g (etwa 1/10) die Ausreißer eine großen Einfluss auf das Ergebnis haben, ist der Wert des Fehlers eventuell höher als die tatsächliche Abweichung vom Modell (Abweichung von der roten Geraden). Zur genauen Fehlerbestimmung des Modells sollten noch andere Größen, wie z.B. der MAE, in Betracht gezogen werden. 
+
+Außerdem zeigt sich auch hier mit einem Korrelationskoeffizient von 0,34, dass kaum ein Zusammenhang zwischen den Werten der austauschbaren Ca-Ionen und ihrer geographischen Lage besteht. Daher sind für ein geeignetes Modell weitere Größen wie Beprobungstiefe oder Reliefgrößen notwendig.
 
 ## Literatur
