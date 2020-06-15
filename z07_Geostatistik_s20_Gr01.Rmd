@@ -1,0 +1,125 @@
+---
+title: "Aufgabenzettel 07"
+author: "Gruppe 01"
+date: "9 6 2020"
+bibliography: literatur.bib
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Laden sie den Workspace yingtan_20_ueb3.Rdata sowie das Paket gstat und überführen sie das Objekt ljz in ein SpatialPointsDataFrame. Reproduzieren sie ihr Variogrammmodell aus Übung 05.
+```{r}
+library(tidyverse)
+load("data/yingtan_20_ueb3.RData")
+
+##SpatialPointsDataFrame##
+library(sp)
+SPDFljz <- ljz
+coordinates(SPDFljz) <- ~ EAST + NORTH
+proj4string(SPDFljz) <- CRS("+proj=utm +zone=50 +ellps=WGS84 +datum=WGS84")
+
+##Reproduktion des Variogrammmodells##
+#omnidirektionales empirisches Variogramm
+library(gstat)
+Ca <- SPDFljz@data$Ca_exch
+
+vario_omni_Ca <- variogram(Ca ~ EAST + NORTH,
+                           data = SPDFljz,
+                           cutoff = 2202,
+                           width = 150)
+
+plot(vario_omni_Ca,
+     main = "Omnidirektionales empirisches Variogramm",
+     pch = 4,
+     col = "black")
+
+#Modell zum Variogramm
+vario_omni_Ca_fit <- fit.variogram(vario_omni_Ca, 
+                                   vgm(model = "Exp"))
+
+plot(vario_omni_Ca,
+     model = vario_omni_Ca_fit,
+     cutoff = 2202,
+     ylim = c(0, 175),
+     pch = 4,
+     col = "black",
+     main = "Variogrammmodell der austauschbaren Ca-Ionen")
+```
+## Aufgabe 14 Leave-One-Out-Cross-Validation
+
+Die Validierung der Ergebnisse ist ein wichtiger Schritt jeder Modellierung. Um erfolgreich und unabhängig validieren zu können, bedarf es Daten, die nicht in die Kalibrierung des Modells eingeflossen sind. Um den häufig ohnehin schon kleinen Datenpool durch eine Aufteilung in Kalibrierungs- und Validierungsdatensatz nicht noch weiter zu reduzieren wird bei geostatistischen Modellen häufig das LOOCV-Verfahren angewendet. Dabei wird nacheinander ein Probenstandort aus dem Modell entfernt und die Zielgröße für diesen Ort vorhergesagt; so lange, bis alle Beprobungspunkte einmal ausgeschlossen worden sind.
+
+a) Führen Sie mit der Methode krige.cv für die Ca-Ionen eine leave-one-out-cross-validation durch. Verwenden Sie das Variogrammmodell aus Aufg. 13 und notieren Sie ihre R-Syntax im Protokoll. (1 Punkt)
+```{r Aufgabe 14a}
+#Leave-one-out-Cross-Validation
+LOOCV <- gstat::krige.cv(formula = Ca_exch ~ 1, 
+                  locations = SPDFljz,
+                  model = vario_omni_Ca_fit)
+```
+b) Vergleichen Sie die Struktur des mittels krige.cv generierten Objekts mit dem Ergebnis der krige-Funktion aus Aufg. 13. Welche Daten-Attribute sind hinzugekommen und wofür stehen sie? (1 Punkt)
+```{r Aufgabe 14b}
+summary(LOOCV)
+
+```
+
+
+observed:
+
+residual:Residuen als Differenz des errechneten Werts zum tatsächlichen Wert, der zur Überprüfung ausgelassen wurde.
+
+zscore: Kriging Standard-Fehler, bei dem die Kriging-Varianz eine Rolle spielt. mean und variance sollten dicht an 0 und 1 liegen
+
+fold: zeigt zu welchem "fold" jeder Datensatz gehört
+[@Bivand.2008]
+
+
+c) Wie sähe das Vorhersageergebnis aus, wenn der Probenstandort während der Kreuzvalidierung nicht ausgeschlossen werden würde? Was ergäbe sich konsequenterweise bei der Fehlerberechnung? (1 Punkt)
+
+Dasselbe wie beim Ordinary Kriging???
+```{r}
+
+```
+## Aufgabe 15 Root-Mean-Squared-Error
+
+Der RMSE gibt Auskunft darüber, wie nah das Modell an die bekannten, tatsächlich gemessenen Daten herankommt. Er ist ein Maß für die 'accuracy' des gewählten Prädiktionsverfahrens.
+
+a) Berechnen Sie den RMSE für die austauschbaren Ca-Ionen. (1 Punkt)
+```{r Aufgabe 15a}
+#Root-Mean-Squere-Error Ca
+rmse <- function(x,y) {
+  sqrt(mean((x - y)^2))
+}
+
+rmse(x = Ca,
+     y = LOOCV@data$residual)
+```
+b) Was bedeuten die einzelnen Silben des Wortes RMSE und warum wird der Vorhersage-Fehler gerade so beschrieben? (2 Punkte)
+
+RMSE steht für Root-Mean-Squere-Error. Zur Fehlerberechnung des Modells wird die Wurzel aus der quadrierten mittleren Abweichung des berechneten Werts von dem tatsächlichen Wert berechnet.
+
+## Aufgabe 16 Grafische Validierung
+
+Die Angabe eines Gesamtfehlers reicht nicht aus, um die Güte eines Modells hinreichend zu beschreiben. Eine Darstellung der Verteilung der Fehler im Raum ist ebenso nützlich wie die Betrachtung der Streuung im Werteraum.
+
+a) Erstellen Sie für ihre Modell-Residuen einen ansehnlichen Bubble-Plot und gehen sie der Frage nach, ob räumliche Muster erkennbar sind. (2 Punkte)
+```{r Aufgabe 16a}
+#Bubbleplot der LOOCV
+library(lattice)
+bubble(LOOCV, "residual",
+       main = "Austauschbare Ca-Ionen: Residuen der LOOCV")
+```
+b) Plotten Sie die tatsächlichen Ca-Ionen-Konzentrationen gegen die vorhergesagten Werte. Ergänzen Sie eine Ausgleichsgerade mit der Steigung eins und einem Verlauf durch den Ursprung. (1 Punkt)
+```{r Aufgabe 16b}
+library(ggplot2)
+DFljz <- as(SPDFljz, "data.frame")
+ggplot(DFljz, aes(x = Ca,
+                    y = leave_one_out_cv)) +
+        geom_smooth()
+
+
+plot(Ca, leave_one_out_cv)
+lm(leave_one_out_cv ~ Ca)
+```
+c) Bewerten Sie kurz das durchgeführte Interpolationsverfahren. Beziehen Sie sich auf den RMSE und ihre Diagnose-Plots. (2 Punkte)
