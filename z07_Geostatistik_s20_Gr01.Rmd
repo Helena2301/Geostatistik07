@@ -112,14 +112,14 @@ bubble(LOOCV, "residual",
 ```
 b) Plotten Sie die tatsächlichen Ca-Ionen-Konzentrationen gegen die vorhergesagten Werte. Ergänzen Sie eine Ausgleichsgerade mit der Steigung eins und einem Verlauf durch den Ursprung. (1 Punkt)
 ```{r Aufgabe 16b}
-library(ggplot2)
-DFljz <- as(SPDFljz, "data.frame")
-ggplot(DFljz, aes(x = Ca,
-                    y = leave_one_out_cv)) +
-        geom_smooth()
+#library(ggplot2)
+#DFljz <- as(SPDFljz, "data.frame")
+#ggplot(DFljz, aes(x = Ca,
+#                    y = leave_one_out_cv)) +
+#        geom_smooth()
 
-
-plot(Ca, leave_one_out_cv)
-lm(leave_one_out_cv ~ Ca)
+loocv <- LOOCV@data$var1.pred
+plot(Ca, loocv)
+abline(lm(loocv ~ Ca))
 ```
 c) Bewerten Sie kurz das durchgeführte Interpolationsverfahren. Beziehen Sie sich auf den RMSE und ihre Diagnose-Plots. (2 Punkte)
