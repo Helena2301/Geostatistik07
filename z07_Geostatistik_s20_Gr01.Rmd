@@ -65,7 +65,6 @@ summary(LOOCV)
 
 ```
 
-
 observed: Tatsächlich gemessenen Werte.
 
 residual: Residuen als Differenz des errechneten Werts zum tatsächlichen Wert, der zur Überprüfung ausgelassen wurde.
@@ -88,10 +87,11 @@ a) Berechnen Sie den RMSE für die austauschbaren Ca-Ionen. (1 Punkt)
 ```{r Aufgabe 15a}
 #Root-Mean-Square-Error Ca
 rmse <- function(x,y) {
-  sqrt(mean((x)^2))
+  sqrt(mean((x-y)^2))
 }
 
-rmse(x = LOOCV@data$residual)
+rmse(x = LOOCV$var1.pred,
+     y = LOOCV$observed)
 ```
 b) Was bedeuten die einzelnen Silben des Wortes RMSE und warum wird der Vorhersage-Fehler gerade so beschrieben? (2 Punkte)
 
